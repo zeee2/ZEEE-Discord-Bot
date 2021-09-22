@@ -1,0 +1,7 @@
+py-cord[voice]
+dislash.py
+jishaku
+EZPaginator
+pathlib
+mysql-connector
+colored
