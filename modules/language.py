@@ -8,7 +8,7 @@ def get_language(id, str):
     default_lang = "ko_kr"
 
     temp = mysql.execute("SELECT lang FROM users_lang where userid = {uid} limit 1;".format(uid = int(id)))
-    if temp == None:
+    if temp == None or len(temp) == 0:
         language = default_lang.lower()
         mysql.execute_only("INSERT INTO users_lang (userid) VALUES ({uid});".format(uid = int(id)))
     else:

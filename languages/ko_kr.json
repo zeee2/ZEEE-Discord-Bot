@@ -1,5 +1,17 @@
 {
     "prefix_hi_title": "안녕하세요!",
     "prefix_hi_description": "제 명령어는 **{BOT_PREFIX}도움말** 로 확인 하실 수 있어요!",
-    "test": "이거슨 테스트ㅎ"
+    "Music_Play_Query_Null": "`{BOT_PREFIX}틀어 <검색어|url>` 형식으로 명령어를 입력해주시겠어요?",
+    "Music_Play_Please_Wait": "잠시 기다려주세요!",
+    "Music_Play_Search_Failed": ":sorry: 죄송해요! 아무것도 찾지 못했어요...",
+    "Music_Play_Track_Select_embed_title": "어떤 노래를 재생할까요?",
+    "Music_Play_Track_Select_embed_field_name": "재생하실 곡의 번호를 입력해주세요! 단, 60초 이내에 입력해주셔야 한답니다.",
+    "Music_Play_select_Timeout": "이런, 제한시간이 지나버렸어요..",
+    "Music_Play_wrong_select": "1부터 10까지의 숫자만 입력해주세요.",
+    "Music_Play_selected_embed_title": ":white_check_mark: | 재생목록에 추가했어요!",
+    "Music_Play_selected_embed_SongNameField_Name": "노래",
+    "Music_Play_selected_embed_RequesterField_Name": "신청자",
+    "Music_Connect_Embed_title": "**{channel}**에 입장했어요.",
+    "Music_Disconnect_Not_Connected": "음? {mention}, 전 이미 아무곳도 접속하지 않은 상태인데요?",
+    "Music_Disconnect_You_need_to_join_first": "{mention}, 음성채널에 먼저 접속해 계셔야 해요."
 }

@@ -31,6 +31,9 @@ class config:
             parsedConfig.get("db", "password")
             parsedConfig.get("db", "database")
             parsedConfig.get("general", "timezone")
+            parsedConfig.get("lavalink", "host")
+            parsedConfig.get("lavalink", "port")
+            parsedConfig.get("lavalink", "password")
             return True
         except configparser.Error:
             return False
@@ -49,6 +52,10 @@ class config:
         self.config.set("db", "database", "")
         self.config.add_section("general")
         self.config.set("general", "timezone", "Asia/Seoul")
+        self.config.add_section("lavalink")
+        self.config.set("lavalink", "host", "")
+        self.config.set("lavalink", "port", "")
+        self.config.set("lavalink", "password", "")
 
         self.config.write(f)
         

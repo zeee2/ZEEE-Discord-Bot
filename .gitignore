@@ -113,3 +113,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 config.ini
+application.yml
+Lavalink-3.3.2.3_1238.jar
+Lavalink.jar
