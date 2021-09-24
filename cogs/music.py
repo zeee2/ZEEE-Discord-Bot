@@ -2,6 +2,7 @@ from modules.language import get_language
 import os
 import re
 import math
+import asyncio
 import discord
 import wavelink
 from bs4 import BeautifulSoup
@@ -14,8 +15,11 @@ from modules import converter
 from common import glob
 
 url_re = re.compile('https?:\\/\\/(?:www\\.)?.+')
+songs = asyncio.Queue()
+play_next_song = asyncio.Event()
 
 class Music(commands.Cog):
+    
     def __init__(self, bot):
         self.bot = bot
 
@@ -25,13 +29,25 @@ class Music(commands.Cog):
 
     async def start_nodes(self):
         await self.bot.wait_until_ready()
-        await self.bot.wavelink.initiate_node(host=str(glob.LAVALINK_HOST),
+        node = await self.bot.wavelink.initiate_node(host=str(glob.LAVALINK_HOST),
                                               port=int(glob.LAVALINK_PORT),
                                               rest_uri=f"http://{glob.LAVALINK_HOST}:{glob.LAVALINK_PORT}",
                                               password=str(glob.LAVALINK_PASS),
                                               identifier='TEST',
                                               region='us_central')
-                            
+        node.set_hook(self.on_event_hook)
+        while True:
+            play_next_song.clear()
+            song, guild_id, ctx = await songs.get()
+            player = self.bot.wavelink.get_player(guild_id)
+            await player.play(song)
+            await play_next_song.wait()
+            await self.send_next_play_song_info(ctx, song)
+
+    async def on_event_hook(self, event):
+        if isinstance(event, (wavelink.TrackEnd, wavelink.TrackException)):
+            play_next_song.set()
+    
     def cog_unload(self):
         self.bot.wavelink.destroy_node()
 
@@ -77,10 +93,13 @@ class Music(commands.Cog):
         if len(str(minutes)) == 1:
             minutes = f"0{str(minutes)}"
         if len(str(seconds)) == 1:
-            minutes = f"0{str(seconds)}"
+            seconds = f"0{str(seconds)}"
         if int(hours) == 0:
             return f"{minutes}:{seconds}"
         return f"{int(hours)}:{minutes}:{seconds}"
+
+    async def send_next_play_song_info(self, ctx, song):
+        await ctx.send(f'test with {song.title}')
 
     @commands.command(name="play", aliases=["틀어", "재생", "재생해", "p"])
     async def play(self, ctx, *, query: str, channel: discord.VoiceChannel=None):
@@ -89,9 +108,9 @@ class Music(commands.Cog):
         player = self.bot.wavelink.get_player(ctx.guild.id)
         if not player.is_connected:
             await self.connect(ctx)
-        await msg.delete()
         
         tracks = await self.bot.wavelink.get_tracks(f'ytsearch:{query}')
+        await msg.delete()
 
         if not tracks:
             embed = discord.Embed(
@@ -150,10 +169,14 @@ class Music(commands.Cog):
                     )
                     embed.add_field(name=get_language(ctx.author.id, "Music_Play_selected_embed_SongNameField_Name"), value=f"[{self.TitleToShort(TrackSelected.title)} - `{self.MillisToHourMinuteSecond(TrackSelected.duration)}`]({TrackSelected.uri})", inline=False)
                     embed.add_field(name=get_language(ctx.author.id, "Music_Play_selected_embed_RequesterField_Name"), value=ctx.author.mention, inline=False)
-                    await player.play(TrackSelected)
+                    # await player.play(TrackSelected)
+                    TempQueue = (TrackSelected, ctx.guild.id, ctx)
+                    await songs.put(TempQueue)
                     return await ctx.send(embed=embed)
         else:
-            await player.play(tracks[0])
+            TempQueue = (tracks[0], ctx.guild.id, ctx)
+            # await player.play(tracks[0])
+            await songs.put(TempQueue)
 
     @commands.command(name="join", aliases=['들어와', '조인', 'whdls', '입장', 'emfdjdhk'])
     async def connect(self, ctx, *, channel: discord.VoiceChannel=None):
@@ -178,12 +201,12 @@ class Music(commands.Cog):
     async def disconnect(self, ctx, *, channel: discord.VoiceChannel=None):
         player = self.bot.wavelink.get_player(ctx.guild.id)
         if not player.is_connected:
-            return await ctx.send(get_language(ctx.author.id, "Music_Disconnect_Not_Connected").format(mention=ctx.autor.mention))
+            return await ctx.send(get_language(ctx.author.id, "Music_Disconnect_Not_Connected").format(mention=ctx.author.mention))
         if not channel:
             try:
                 channel = ctx.author.voice.channel
             except AttributeError:
-                return await ctx.send(get_language(ctx.author.id, "Music_Disconnect_You_need_to_join_first").format(mention=ctx.autor.mention))
+                return await ctx.send(get_language(ctx.author.id, "Music_Disconnect_You_need_to_join_first").format(mention=ctx.author.mention))
 
         await ctx.message.add_reaction('✅')
 
