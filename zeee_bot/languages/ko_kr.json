@@ -8,10 +8,14 @@
     "Music_Play_Track_Select_embed_field_name": "재생하실 곡의 번호를 입력해주세요! 단, 60초 이내에 입력해주셔야 한답니다.",
     "Music_Play_select_Timeout": "이런, 제한시간이 지나버렸어요..",
     "Music_Play_wrong_select": "1부터 10까지의 숫자만 입력해주세요.",
+    "Music_Play_Now_Playing": ":white_check_mark: | 재생중",
     "Music_Play_selected_embed_title": ":white_check_mark: | 재생목록에 추가했어요!",
     "Music_Play_selected_embed_SongNameField_Name": "노래",
     "Music_Play_selected_embed_RequesterField_Name": "신청자",
+    "Music_Repeat_Toggle_embed_title": "반복재생을 {repeatmsg}어요!",
     "Music_Connect_Embed_title": "**{channel}**에 입장했어요.",
     "Music_Disconnect_Not_Connected": "음? {mention}, 전 이미 아무곳도 접속하지 않은 상태인데요?",
-    "Music_Disconnect_You_need_to_join_first": "{mention}, 음성채널에 먼저 접속해 계셔야 해요."
+    "Music_Disconnect_You_need_to_join_first": "{mention}, 음성채널에 먼저 접속해 계셔야 해요.",
+    "Music_Volume_Change_Wrong_Value": "1부터 100까지 사이의 숫자만 입력해주시겠어요? :sorry:",
+    "Music_Volume_Change_Successful": "1부터 100까지 사이의 숫자만 입력해주시겠어요? :sorry:"
 }

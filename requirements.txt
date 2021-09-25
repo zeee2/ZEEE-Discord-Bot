@@ -5,3 +5,6 @@ EZPaginator
 pathlib
 mysql-connector
 colored
+wavelink
+bs4
+git+https://github.com/Rapptz/discord-ext-menus.git

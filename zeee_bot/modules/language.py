@@ -2,7 +2,7 @@ import pathlib
 import os
 import json
 
-from common import mysql
+from zeee_bot.common import mysql
 
 def get_language(id, str):
     default_lang = "ko_kr"

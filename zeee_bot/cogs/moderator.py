@@ -6,7 +6,7 @@ import random
 import datetime
 from colored import fore, back, style
 
-from common import glob, logging
+from zeee_bot.common import glob, logging
 
 class Moderate(commands.Cog):
     def __init__(self, bot):
@@ -40,7 +40,7 @@ class Moderate(commands.Cog):
                 fields = []
                 num = 0
                 for i in cogs:
-                    fields.append([f"Cogs #{num}", f"**{i.replace('cogs.', '')}**", True])
+                    fields.append([f"Cogs #{num}", f"**{i.replace('zeee_bot.cogs.', '')}**", True])
                     num += 1
                 for name, value, inline in fields:
                     embed.add_field(name=name, value=value, inline=inline)
@@ -73,8 +73,8 @@ class Moderate(commands.Cog):
                     msgs += f"{LoadType} done."
                     await msg.edit(content=msgs)
                 else:
-                    if not cogsName in "cogs.":
-                        cogsName = f"cogs.{cogsName}"
+                    if not cogsName in "zeee_bot.cogs.":
+                        cogsName = f"zeee_bot.cogs.{cogsName}"
                     try:
                         if loadType == "load" or loadType == "l" or loadType == "lo":
                             self.bot.load_extension(cogsName)

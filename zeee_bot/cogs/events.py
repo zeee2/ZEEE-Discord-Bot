@@ -9,8 +9,8 @@ from colored import fore, back, style
 import datetime
 from itertools import cycle
 
-from common import glob, logging
-from modules import language
+from zeee_bot.common import glob, logging
+from zeee_bot.modules import language
 
 
 
@@ -28,7 +28,7 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.content == glob.BOT_PREFIX:
+        if message.content == glob.BOT_PREFIX or glob.bot.user.mentioned_in(message):
             ctx = await self.bot.get_context(message)
             embed = Embed(
                 title=language.get_language(message.author.id, "prefix_hi_title"),
@@ -38,6 +38,8 @@ class Events(commands.Cog):
             )
             embed.set_footer(text=f"{glob.bot.user}")
             await ctx.send(embed = embed)
+        # if glob.bot.user.mentioned_in(message):
+
     
     @tasks.loop(seconds=10.0)
     async def bot_loop(self):

@@ -2,7 +2,7 @@ import mysql.connector
 from mysql.connector import errorcode
 import sys
 
-from common import glob, logging
+from zeee_bot.common import glob, logging
 
 def DB_CONNECT():
     try:
@@ -47,7 +47,7 @@ def DB_CREATE():
 def CHECK_TABLE():
     logging.ConsoleLog("ok", 'DB CHECKER', f"Checking DB Tables...")
     okTable = []
-    CHECK_QUERYS_TABLE = ["users_lang", "musicBot_logs"]
+    CHECK_QUERYS_TABLE = ["users_lang", "musicBot_logs", "musicBot_queue"]
     cur = glob.DB.cursor()
     for query in CHECK_QUERYS_TABLE:
         cur.execute(f"""
@@ -63,13 +63,25 @@ def CHECK_TABLE():
     for check in okTable:
         for key in check.keys():
             if key == "users_lang" and check[key] == 0:
-                execute(f"""
+                execute_only(f"""
                     CREATE TABLE `zeeebot`.`users_lang` (
                     `userid` BIGINT NOT NULL,
                     `lang` VARCHAR(6) NULL DEFAULT 'ko_kr',
                     PRIMARY KEY (`userid`))
                     ENGINE = InnoDB
                     DEFAULT CHARACTER SET = utf8mb4;
+                """)
+                logging.ConsoleLog("war", 'DB CHECKER', f"{key} table generated.")
+            if key == "musicBot_queue" and check[key] == 0:
+                execute_only(f"""
+                CREATE TABLE `zeeebot`.`musicBot_queue` (
+                    `queue_id` INT NOT NULL,
+                    `track_id` BIGINT NULL,
+                    `requester_id` BIGINT NULL,
+                    `requester` VARCHAR(45) NULL,
+                    `guild_id` BIGINT NULL,
+                    `in_time` TIMESTAMP NULL,
+                PRIMARY KEY (`queue_id`));
                 """)
                 logging.ConsoleLog("war", 'DB CHECKER', f"{key} table generated.")
     cur.close()
@@ -79,6 +91,13 @@ def execute(query):
     cur = glob.DB.cursor(buffered=True)
     cur.execute(query)
     result = cur.fetchall()
+    cur.close()
+    return result
+
+def execute_one(query):
+    cur = glob.DB.cursor(buffered=True)
+    cur.execute(query)
+    result = cur.fetchone()
     cur.close()
     return result
 

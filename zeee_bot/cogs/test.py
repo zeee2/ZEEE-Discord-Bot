@@ -3,7 +3,7 @@ import discord
 from dislash import InteractionClient, ActionRow, Button, ButtonStyle, SelectMenu, SelectOption
 from colored import fore, back, style
 
-from common import glob
+from zeee_bot.common import glob
 
 class Test(commands.Cog):
     def __init__(self, bot):
