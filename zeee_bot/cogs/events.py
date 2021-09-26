@@ -4,6 +4,7 @@ from discord import Embed
 from discord.ext import tasks
 from discord.ext.commands import context
 from discord.ext.tasks import loop
+from discord.utils import get
 import random
 from colored import fore, back, style
 import datetime
@@ -31,6 +32,7 @@ class Events(commands.Cog):
         logging.ConsoleLog("ok", "LOOP-System", f"Bot Status Loop Start.")
         self.music_npImage_cron.start()
         logging.ConsoleLog("ok", "LOOP-System", f"Bot Music-NP images cron Loop Start.")
+        self.free_mention.start()
 
     @commands.Cog.listener()
     async def on_message(self, message):

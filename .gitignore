@@ -114,8 +114,6 @@ dmypy.json
 .pyre/
 config.ini
 application.yml
-Lavalink-3.3.2.3_1238.jar
-Lavalink.jar
-logs/spring.log.2021-09-23.0.gz
+*.jar
 *.gz
-zeee_bot/images/*.png
+/zeee_bot/images/*.png
