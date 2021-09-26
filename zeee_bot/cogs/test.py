@@ -1,7 +1,10 @@
+from os import name
+import pathlib
 from discord.ext import commands
 import discord
 from dislash import InteractionClient, ActionRow, Button, ButtonStyle, SelectMenu, SelectOption
 from colored import fore, back, style
+from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 
 from zeee_bot.common import glob
 
@@ -29,6 +32,40 @@ class Test(commands.Cog):
         async def on_timeout():
             await msg.delete()
             await ctx.send("응애 타임아웃!")
+
+    def drawProgressBar(self, d, x, y, w, h, progress, bg="black", fg="red"):
+        # draw background
+        d.ellipse((x+w, y, x+h+w, y+h), fill=bg, outline=None)
+        d.ellipse((x, y, x+h, y+h), fill=bg, outline=None)
+        d.rectangle((x+(h/2), y, x+w+(h/2), y+h), fill=bg, outline=None)
+
+        # draw progress bar
+        w *= progress
+        d.ellipse((x+w, y, x+h+w, y+h),fill=fg, outline=None)
+        d.ellipse((x, y, x+h, y+h),fill=fg, outline=None)
+        d.rectangle((x+(h/2), y, x+w+(h/2), y+h),fill=fg, outline=None)
+
+        return d
+
+    @commands.command(name='ㅅ')
+    async def testtest(self, ctx):
+        a = 'get base img.'
+        msg = await ctx.send(a)
+
+        base_img = Image.open(f"{pathlib.Path(__file__).parent.parent}/images/now_base.png").convert("RGBA")
+        draw = ImageDraw.Draw(base_img)
+        color = (96, 197, 241)
+        draw = self.drawProgressBar(draw, 15, 11, 572.5, 29, 0.5, bg=color, fg=color)
+
+        # ImageDraw.floodfill(base_img, xy=(14,24), value=color, thresh=40)
+        a += "\nwriting image."
+        await msg.edit(content=a)
+        
+        base_img.save('test2.png')
+
+        a += "\nDone."
+        await msg.delete()
+        await ctx.send(file=discord.File("test2.png"))
 
     @commands.command(name="test2")
     async def __test2(self, ctx):
