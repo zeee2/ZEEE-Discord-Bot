@@ -23,8 +23,8 @@ class Moderate(commands.Cog):
                 return "reloaded"
             else:
                 return None
-                
-        if ctx.author.id != int(glob.BOT_DEVLOPER_ID):
+        print(glob.BOT_DEVLOPER_ID)
+        if ctx.author.id not in glob.BOT_DEVLOPER_ID:
             return await ctx.message.add_reaction('❌')
         else:
             await ctx.message.add_reaction('✔️')

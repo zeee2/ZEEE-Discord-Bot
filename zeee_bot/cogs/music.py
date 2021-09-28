@@ -322,7 +322,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
                 'host': str(glob.LAVALINK_HOST),
                 'port': int(glob.LAVALINK_PORT),
                 'rest_uri': f"http://{glob.LAVALINK_HOST}:{glob.LAVALINK_PORT}",
-                'password': "owowo",
+                'password': f'{str(glob.LAVALINK_PASS)}',
                 'identifier': 'MAIN',
                 'region': 'us_central'
                 }
@@ -625,7 +625,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
                 if temp == PlayList[len(PlayList)-1]:
                     tempEmbedVal += f"{temp.title} - `{str(datetime.timedelta(milliseconds=int(temp.length)))}`"
                 else:
-                    if len(tempEmbedVal) > 1000:
+                    if len(tempEmbedVal) > 700:
                         tempEmbedVal += get_language(ctx.author.id, "Music_Play_Over_Embed").format(song=len(PlayList) - AddCount)
                         break
                     tempEmbedVal += f"{temp.title} - `{str(datetime.timedelta(milliseconds=int(temp.length)))}`\n"
@@ -806,6 +806,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         base_img = base_img.resize((567, 45), resample=Image.ANTIALIAS)
         base_img = base_img.resize((567, 45), resample=Image.ANTIALIAS)
         base_img = base_img.resize((567, 45), resample=Image.ANTIALIAS)
+        base_img = base_img.resize((567, 45), resample=Image.ANTIALIAS)
         base_img.save(f'./zeee_bot/images/{fileName}')
 
         await msg.delete()
@@ -821,6 +822,52 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         embed.add_field(name=get_language(ctx.author.id, "Music_General_Requester"), value=f"{player.dj.mention}", inline=False)
         embed.set_footer(text=f"{glob.bot.user}")
         embed.set_image(url=f"https://rinaring.zeee.dev/{fileName}")
+        await ctx.send(embed=embed)
+
+
+    @commands.command(name="pause", aliases=["멈춰", "일시중지", "중지", "스탑", "멈춰!"])
+    async def pause(self, ctx: commands.Context):
+        player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, context=ctx)
+        
+        if not player.is_connected or not player.is_playing:
+            embed = discord.Embed(
+                title=get_language(ctx.author.id, "Music_General_Not_Connected"),
+                color=converter.converthex("#FF7A6B"),
+                timestamp=datetime.datetime.now(glob.TIMEZONE)
+            )
+            embed.set_footer(text=f"{glob.bot.user}")
+            return await ctx.send(embed=embed)
+        
+        await player.set_pause(pause=True)
+        embed = discord.Embed(
+            title=get_language(ctx.author.id, "Music_Pause_Successful"),
+            color=converter.converthex(glob.ERROR_COLOR),
+            timestamp=datetime.datetime.now(glob.TIMEZONE)
+        )
+        embed.set_footer(text=f"{glob.bot.user}")
+        await ctx.send(embed=embed)
+
+
+    @commands.command(name="resume", aliases=["다시시작", "계속", "계속틀어", "얼음땡", "ektltlwkr"])
+    async def resume(self, ctx: commands.Context):
+        player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, context=ctx)
+        
+        if not player.is_connected or not player.is_playing:
+            embed = discord.Embed(
+                title=get_language(ctx.author.id, "Music_General_Not_Connected"),
+                color=converter.converthex("#FF7A6B"),
+                timestamp=datetime.datetime.now(glob.TIMEZONE)
+            )
+            embed.set_footer(text=f"{glob.bot.user}")
+            return await ctx.send(embed=embed)
+        
+        await player.set_pause(pause=False)
+        embed = discord.Embed(
+            title=get_language(ctx.author.id, "Music_Resume_Successful"),
+            color=converter.converthex(glob.ERROR_COLOR),
+            timestamp=datetime.datetime.now(glob.TIMEZONE)
+        )
+        embed.set_footer(text=f"{glob.bot.user}")
         await ctx.send(embed=embed)
 
 

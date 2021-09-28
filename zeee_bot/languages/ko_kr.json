@@ -37,6 +37,8 @@
     "Music_NP_Embed_Field_SongName": "노래",
     "Music_NP_Embed_Field_Nowlength": "재생중인 부분",
     "Music_NP_Embed_Field_TotalLength": "전채 길이",
+    "Music_Pause_Successful": "음악을 멈췄어요!",
+    "Music_Resume_Successful": "일시정지를 해제할게요.",
     "Music_Volume_Change_Wrong_Value": "1부터 150까지 사이의 숫자만 입력해주시겠어요? :sorry:",
     "Music_Volume_Change_Successful": ":white_check_mark: | 볼륨을 {vol}로 설정했어요!",
     "Music_Volume_Change_Max": ":interrobang: | 이미 최대 볼륨이에요..!",

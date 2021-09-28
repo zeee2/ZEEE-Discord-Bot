@@ -49,7 +49,17 @@ def CONFIG_LOADER():
 
     glob.BOT_TOKEN = conf.config['bot']['token']
     glob.BOT_PREFIX = conf.config['bot']['prefix']
-    glob.BOT_DEVLOPER_ID = conf.config['bot']['devloper_id']
+    # print(conf.config['bot']['developer_id'])
+    try:
+      temp_dev_id = conf.config['bot']['devloper_id'].split(", ")
+      logging.ConsoleLog("ok", "config", "Multiple Developer Id detect.")
+      devs = []
+      for temp in temp_dev_id:
+        devs.append(int(temp))
+      glob.BOT_DEVLOPER_ID = devs
+    except:
+      logging.ConsoleLog("ok", "config", "Single Developer Id detect.")
+      glob.BOT_DEVLOPER_ID = int([conf.config['bot']['devloper_id']])
     glob.SQL_HOST = conf.config['db']['host']
     glob.SQL_USER = conf.config['db']['username']
     glob.SQL_PASS = conf.config['db']['password']
@@ -68,41 +78,44 @@ def WRITE_LAVALINK_SETTING():
     logging.ConsoleLog("ok", 'LAVALINK', "Setup start...")
     f = open("application.yml", 'w')
     f.write(f"""server:
-    port: {glob.LAVALINK_PORT}
-    address: {glob.LAVALINK_HOST}
-    lavalink:
-    server:
-        password: "{glob.LAVALINK_PASS}"
-        sources:
-        youtube: true
-        bandcamp: true
-        soundcloud: true
-        twitch: true
-        vimeo: true
-        mixer: true
-        http: true
-        local: false
-        bufferDurationMs: 400
-        youtubePlaylistLoadLimit: 6
-        playerUpdateInterval: 5
-        youtubeSearchEnabled: true
-        soundcloudSearchEnabled: true
-        gc-warnings: true
-    metrics:
-    prometheus:
-        enabled: false
-        endpoint: /metrics
-    sentry:
-    dsn: ""
-    environment: ""
-    logging:
-    file:
-        max-history: 30
-        max-size: 1GB
-    path: ./logs/
-    level:
-        root: INFO
-        lavalink: INFO""")
+  port: {glob.LAVALINK_PORT}
+  address: {glob.LAVALINK_HOST}
+lavalink:
+  server:
+    password: "{glob.LAVALINK_PASS}"
+    sources:
+      youtube: true
+      bandcamp: false
+      soundcloud: false
+      twitch: false
+      vimeo: false
+      mixer: false
+      http: false
+      local: false
+    bufferDurationMs: 400
+    youtubePlaylistLoadLimit: 6
+    youtubeSearchEnabled: true
+    soundcloudSearchEnabled: false
+    gc-warnings: true
+    
+metrics:
+  prometheus:
+    enabled: false
+    endpoint: /metrics
+
+sentry:
+  dsn: ""
+
+loggin:
+  file:
+    max-history: 30
+    max-size: 1GB
+  path: ./logs/
+
+level:
+  root: INFO
+  lavalink: INFO
+""")
     f.close()
 
 asciiArt()

@@ -14,7 +14,7 @@ import time
 import multiprocessing
 
 from zeee_bot.common import mysql, glob, logging
-from zeee_bot.modules import lavalinkstart, cogsLoadder
+from zeee_bot.modules import cogsLoadder
 
 
 class RinaRing(commands.Bot):
@@ -28,22 +28,29 @@ class RinaRing(commands.Bot):
             afk=True
         )
 
-        # self.SETUP_LAVALINK()
-        # time.sleep(10)
+        self.SETUP_LAVALINK()
+        time.sleep(5)
 
     def SETUP_LAVALINK(self):
         logging.ConsoleLog("ok", 'LAVALINK', "Checking lavalink.jar...")
         a = requests.get("https://api.github.com/repos/Cog-Creators/Lavalink-Jars/releases")
         b = json.loads(a.text)
-        if not os.path.isfile(f"{str(pathlib.Path(__file__).parent.parent)}/Lavalink.jar"):
+        if not os.path.isfile(f"{str(pathlib.Path(__file__).parent.parent)}/Lavalink-{b[0]['tag_name']}.jar"):
             logging.ConsoleLog("war", 'LAVALINK', "Download start lavalink.jar...")
-            request.urlretrieve(f"https://github.com/Cog-Creators/Lavalink-Jars/releases/download/{b[0]['tag_name']}/Lavalink.jar", f"Lavalink.jar")
+            request.urlretrieve(f"https://github.com/Cog-Creators/Lavalink-Jars/releases/download/{b[0]['tag_name']}/Lavalink.jar", f"Lavalink-{b[0]['tag_name']}.jar")
             if platform.system() == "Linux":
-                os.system("chmod -R 777 ./Lavalink.jar")
-        process = multiprocessing.Process(target=lavalinkstart.child_process)
+                os.system(f"sudo chmod -R 777 ./Lavalink-{b[0]['tag_name']}.jar")
+        process = multiprocessing.Process(target=self.RUN_LAVALINK, args=(f"Lavalink-{b[0]['tag_name']}.jar", ))
         process.start()
 
-        logging.ConsoleLog("ok", 'LAVALINK', "Setup Done.")
+        logging.ConsoleLog("ok", 'LAVALINK', "Lavalink Setup Done.")
+
+    def RUN_LAVALINK(self, filename):
+        logging.ConsoleLog("ok", "lavalink", "Lavalink Started...")
+        if platform.system() == "Linux":
+            os.system(f"sudo java -jar {filename}")
+        else:
+            os.system(f"java -jar {filename}")
 
 bot = RinaRing()
 slash = InteractionClient(bot)
