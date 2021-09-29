@@ -1,10 +1,6 @@
-import sys
 import os
 import configparser
-from pytz import timezone
 from colored import fore, back, style
-
-from zeee_bot.common import glob, logging
 
 class config:
     def __init__(self, file):

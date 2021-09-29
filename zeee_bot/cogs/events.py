@@ -1,16 +1,14 @@
+import random
+import datetime
+import os
+import time
+
 from discord import Activity, ActivityType
 from discord.ext import commands
 from discord import Embed
 from discord.ext import tasks
-from discord.ext.commands import context
-from discord.ext.tasks import loop
-from discord.utils import get
-import random
 from colored import fore, back, style
-import datetime
 from itertools import cycle
-import os
-import time
 
 from zeee_bot.common import glob, logging
 from zeee_bot.modules import language
@@ -57,6 +55,7 @@ class Events(commands.Cog):
     @tasks.loop(minutes=30.0)
     async def music_npImage_cron(self):
         deleted = []
+        logging.ConsoleLog("ok", "Music-NP-CRONJOB", f"Get NP ProgressBar Image will delete")
         for temp in os.listdir(f"{glob.BASEROOT}/zeee_bot/images"):
             if not temp == "now_base.png":
                 file_root = f"{glob.BASEROOT}/zeee_bot/images/{temp}"

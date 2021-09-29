@@ -1,6 +1,7 @@
 import pathlib
-from colored import fore, back, style
 import os
+
+from colored import fore, back, style
 
 from zeee_bot.common import logging
 

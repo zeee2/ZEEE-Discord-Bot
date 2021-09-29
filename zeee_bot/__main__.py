@@ -3,15 +3,15 @@ import requests
 import json
 import pathlib
 import discord
+import platform
+import time
+import multiprocessing
+
 from discord.ext import commands
 from dislash import InteractionClient
 from colored import fore, back, style
-import sys
-import platform
 from urllib import request
 from pytz import timezone
-import time
-import multiprocessing
 
 from zeee_bot.common import mysql, glob, logging
 from zeee_bot.modules import cogsLoadder

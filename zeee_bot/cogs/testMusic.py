@@ -1,8 +1,3 @@
-from discord.ext import commands
-import discord
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, SelectMenu, SelectOption
-from colored import fore, back, style
-from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 import os
 
 from discord import FFmpegPCMAudio
@@ -11,6 +6,11 @@ from discord.utils import get as disget
 from youtube_dl import YoutubeDL
 from yt_dlp import YoutubeDL as YTDLP
 from requests import get
+from dislash import InteractionClient, ActionRow, Button, ButtonStyle, SelectMenu, SelectOption
+from colored import fore, back, style
+from PIL import Image, ImageFont, ImageDraw, ImageEnhance
+from discord.ext import commands
+import discord
 
 from zeee_bot.common import glob
 

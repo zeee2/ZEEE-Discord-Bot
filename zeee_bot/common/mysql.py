@@ -1,6 +1,7 @@
 import mysql.connector
-from mysql.connector import errorcode
 import sys
+
+from mysql.connector import errorcode
 
 from zeee_bot.common import glob, logging
 

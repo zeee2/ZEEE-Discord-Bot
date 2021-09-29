@@ -1,10 +1,9 @@
 py-cord[voice]
 dislash.py
 jishaku
-EZPaginator
 pathlib
 mysql-connector
 colored
 wavelink
-bs4
+melonapi
 git+https://github.com/Rapptz/discord-ext-menus.git

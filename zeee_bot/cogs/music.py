@@ -1,5 +1,4 @@
-from enum import Flag
-from os import name
+import json
 import pathlib
 import time
 import async_timeout
@@ -12,21 +11,16 @@ import wavelink
 import math
 import datetime
 
-from wavelink.eqs import Equalizer
-
 import sponsorblock as sb
 from wavelink.player import TrackPlaylist
-from PIL import Image, ImageFont, ImageDraw, ImageEnhance
+from PIL import Image, ImageDraw
 from discord.ext import commands, menus
-from EZPaginator import Paginator
-from discord import player
-from discord.channel import VoiceChannel
-from bs4 import BeautifulSoup
 from colored import fore, back, style
+from melonapi import scrapeMelon
 
 from zeee_bot.modules import converter
 from zeee_bot.modules.language import get_language
-from zeee_bot.common import glob, mysql, logging
+from zeee_bot.common import glob, logging
 
 url_re = re.compile('https?:\\/\\/(?:www\\.)?.+')
 
@@ -61,6 +55,7 @@ class Player(wavelink.Player):
         self.updating = False
         self.repeat = False
         self.before_track = None
+        self.now_track = None
         self.sponsor_skip = True
 
     async def set_default_volume(self):
@@ -70,7 +65,7 @@ class Player(wavelink.Player):
         if self.is_playing and not force or self.waiting and not force:
             return
         if self.repeat:
-            await self.play(self.before_track)
+            await self.play(self.now_track)
         else:
             try:
                 self.waiting = True
@@ -131,7 +126,11 @@ class Player(wavelink.Player):
         channel = self.bot.get_channel(int(self.channel_id))
         qsize = self.queue.qsize()
 
-        embed = discord.Embed(title=get_language(self.context.author.id, "Music_Player_Controller_Embed_Title").format(channel = channel.name), colour=0xebb145)
+        embed = discord.Embed(
+            title=get_language(self.context.author.id, "Music_Player_Controller_Embed_Title").format(channel = channel.name),
+            colour=0xebb145,
+            timestamp=datetime.datetime.now(glob.TIMEZONE)
+        )
         embed.description = f'재생중: **[{track.title}]({track.uri})**\n\n'
         embed.set_thumbnail(url=track.thumb)
         embed.set_footer(text=f"{glob.bot.user}")
@@ -140,6 +139,7 @@ class Player(wavelink.Player):
         embed.add_field(name='길이', value=str(datetime.timedelta(milliseconds=int(track.length))), inline=True)
         embed.add_field(name='재생목록', value=str(qsize) + "개", inline=True)
         embed.add_field(name='볼륨', value=f'**`{self.volume}%`**', inline=True)
+        embed.add_field(name='이퀄라이저', value=f'**`{self.equalizer}`**', inline=True)
 
         return embed
 
@@ -167,7 +167,6 @@ class Player(wavelink.Player):
             await self.destroy()
         except KeyError:
             pass
-
 
 class InteractiveController(menus.Menu):
     """The Players interactive controller menu class."""
@@ -284,22 +283,6 @@ class InteractiveController(menus.Menu):
         await self.bot.invoke(ctx)
 
 
-class PaginatorSource(menus.ListPageSource):
-    """Player queue paginator class."""
-
-    def __init__(self, entries, *, per_page=8):
-        super().__init__(entries, per_page=per_page)
-
-    async def format_page(self, menu: menus.Menu, page):
-        embed = discord.Embed(title='Coming Up...', colour=0x4f0321)
-        embed.description = '\n'.join(f'`{index}. {title}`' for index, title in enumerate(page, 1))
-        embed.set_footer(text=f"{glob.bot.user}")
-        return embed
-
-    def is_paginating(self):
-        return True
-
-
 class Music(commands.Cog, wavelink.WavelinkMixin):
     def __init__(self, bot):
         self.bot = bot
@@ -337,13 +320,13 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
 
     @wavelink.WavelinkMixin.listener(event='on_track_start')
     async def on_player_start(self, node:wavelink.Node, payload):
-        current_track = payload.player.current
-        payload.player.before_track = current_track
+        payload.player.now_track = payload.player.current
 
     @wavelink.WavelinkMixin.listener(event='on_track_stuck')
     @wavelink.WavelinkMixin.listener(event='on_track_end')
     @wavelink.WavelinkMixin.listener(event='on_track_exception')
     async def on_player_stop(self, node: wavelink.Node, payload):
+        payload.player.before_track = payload.player.current
         await payload.player.do_next()
 
     @commands.Cog.listener()
@@ -371,9 +354,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
             player.dj = member
         
 
-
     async def cog_command_error(self, ctx: commands.Context, error: Exception):
-        """Cog wide error handler."""
         if isinstance(error, IncorrectChannelError):
             return
 
@@ -388,12 +369,25 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
             return await ctx.send(embed=embed)
 
         if isinstance(error, NoChannelProvided):
-            return await ctx.send('You must be in a voice channel or provide one to connect to.')
+            embed = discord.Embed(
+                title=get_language(ctx.author.id, "Music_Error_Handler_No_Channel_Provided"),
+                color=converter.converthex(glob.ERROR_COLOR),
+                timestamp=datetime.datetime.now(glob.TIMEZONE)
+            )
+            embed.set_footer(text=f"{glob.bot.user}")
+            return await ctx.send(embed=embed)
 
     async def cog_check(self, ctx: commands.Context):
         """Cog wide check, which disallows commands in DMs."""
         if not ctx.guild:
-            await ctx.send('Music commands are not available in Private Messages.')
+            embed = discord.Embed(
+                title=get_language(ctx.author.id, "Music_General_NO"),
+                description=get_language(ctx.author.id, "Music_Error_Handler_Not_Allowed_in_DM"),
+                color=converter.converthex(glob.ERROR_COLOR),
+                timestamp=datetime.datetime.now(glob.TIMEZONE)
+            )
+            embed.set_footer(text=f"{glob.bot.user}")
+            await ctx.send(embed=embed)
             return False
 
         return True
@@ -405,7 +399,6 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         player: Player = self.bot.wavelink.get_player(ctx.guild.id, cls=Player, context=ctx)
         if player.context:
             if player.context.channel != ctx.channel:
-                await ctx.send(f'{ctx.author.mention}, you must be in {player.context.channel.mention} for this session.')
                 raise IncorrectChannelError
 
         if ctx.command.name == 'connect' and not player.context:
@@ -420,11 +413,14 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
 
         if player.is_connected:
             if ctx.author not in channel.members:
-                await ctx.send(f'{ctx.author.mention}, you must be in `{channel.name}` to use voice commands.')
+                embed = discord.Embed(
+                    title=get_language(ctx.author.id, "Music_Error_Handler_Join_Voice_Channel").format(channel=f"{channel.mention}"),
+                    color=converter.converthex(glob.ERROR_COLOR),
+                    timestamp=datetime.datetime.now(glob.TIMEZONE)
+                )
+                embed.set_footer(text=f"{glob.bot.user}")
+                await ctx.send(embed=embed)
                 raise IncorrectChannelError
-
-    def getPlayer(self, ctx):
-        return self.bot.wavelink.get_player(ctx.guild.id)
 
     def NumToEmojis(self, num):
         numbers = [int(i) for i in str(num)]
@@ -476,12 +472,6 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         return f"{int(hours)}:{minutes}:{seconds}"
 
     def drawProgressBar(self, d, x, y, w, h, progress, bg="black", fg="red", hasspnsorskip=False):
-        # draw background
-        # d.ellipse((x+w, y, x+h+w, y+h), fill=None, outline=None)
-        # d.ellipse((x, y, x+h, y+h), fill=None, outline=None)
-        # d.rectangle((x+(h/2), y, x+w+(h/2), y+h), fill=None, outline=None)
-
-        # draw progress bar
         w *= progress
         d.ellipse((x+w, y, x+h+w, y+h),fill=fg, outline=None)
         d.ellipse((x, y, x+h, y+h),fill=fg, outline=None)
@@ -492,6 +482,18 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         d.rectangle((x+(h/2), y, x+w+(h/2), y+h),fill=fg, outline=None)
 
         return d
+
+    async def get_sponser(self, sbc, track):
+        try:
+            index = 0
+            sponserList = []
+            for temp in sbc.get_skip_segments(track.uri):
+                index += 1
+                if temp.category == "intro" or "music_offtopic":
+                    sponserList.append(temp)
+        except:
+            pass
+        return sponserList
 
     @commands.command(name="play", aliases=["틀어", "재생", "재생해", "p"])
     async def play(self, ctx, *, query: str, channel: discord.VoiceChannel=None):
@@ -566,16 +568,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
                 if selectMsg.content.isdigit():
                     await msg.delete()
                     selectTrack = tracks[int(selectMsg.content)-1]
-
-                    try:
-                        index = 0
-                        sponserList = []
-                        for temp in sbc.get_skip_segments(selectTrack.uri):
-                            index += 1
-                            if temp.category == "intro" or "music_offtopic":
-                                sponserList.append(temp)
-                    except:
-                        pass
+                    sponserList = await self.get_sponser(sbc, selectTrack)
 
                     track = Track(selectTrack.id, selectTrack.info, requester=ctx.author, sponsorskip=sponserList)
                     await player.queue.put(track)
@@ -583,30 +576,14 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         else:
             if isinstance(tracks, TrackPlaylist):
                 for TempTrack in tracks.tracks:
-                    try:
-                        index = 0
-                        sponserList = []
-                        for temp in sbc.get_skip_segments(selectTrack.uri):
-                            index += 1
-                            if temp.category == "intro" or "music_offtopic":
-                                sponserList.append(temp)
-                    except:
-                        pass
+                    sponserList = await self.get_sponser(sbc, selectTrack)
 
                     track = Track(TempTrack.id, TempTrack.info, requester=ctx.author, sponsorskip=sponserList)
                     await player.queue.put(track)
                     PlayList.append(track)
             else:
                 selectTrack = tracks[0]
-                try:
-                    index = 0
-                    sponserList = []
-                    for temp in sbc.get_skip_segments(selectTrack.uri):
-                        index += 1
-                        if temp.category == "intro" or "music_offtopic":
-                            sponserList.append(temp)
-                except:
-                    pass
+                sponserList = await self.get_sponser(sbc, selectTrack)
 
                 track = Track(selectTrack.id, selectTrack.info, requester=ctx.author, sponsorskip=sponserList)
                 await player.queue.put(track)
@@ -643,12 +620,187 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
             embed.add_field(name=get_language(ctx.author.id, "Music_Play_selected_embed_RequesterField_Name"), value=ctx.author.mention, inline=True)
             if not player.queue.qsize()-1 == 0:
                 embed.add_field(name=get_language(ctx.author.id, "Music_Play_Left_song_count_embed_title"), value=get_language(ctx.author.id, "Music_Play_Left_song_count_embed_value").format(count=player.queue.qsize()-1), inline=True)
-        embed.add_field(name=get_language(ctx.author.id, "Music_Play_Add_Queue_info_embed_title"), value=get_language(ctx.author.id, "Music_Play_Add_Queue_info_embed_value").format(volume=player.volume, equalizer=player.equalizer, repeat='켜짐' if player.repeat else '꺼짐'), inline=False)
+        embed.add_field(name=get_language(ctx.author.id, "Music_Play_Add_Queue_info_embed_title"), value=get_language(ctx.author.id, "Music_Play_Add_Queue_info_embed_value").format(volume=player.volume, equalizer=player.equalizer, repeat='켜짐' if player.repeat else '꺼짐', eq=player.equalizer), inline=False)
         await ctx.send(embed=embed)
 
         if not player.is_playing:
             await player.do_next()
 
+    
+    @commands.command(name="melon", aliases=["멜론", "멜론차트", "멜론100", "메론맛바나나", "메롱", "t"])
+    async def melon(self, ctx, *, channel: discord.VoiceChannel=None):
+        player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, context=ctx)
+        node = self.bot.wavelink
+        sbc = sb.Client()
+
+        if not player.is_connected:
+            await player.set_default_volume()
+            await ctx.invoke(self.connect)
+
+        embed = discord.Embed(
+            title=get_language(ctx.author.id, "Music_Play_Please_Wait"),
+            description=get_language(ctx.author.id, "Music_Play_Get_Melon_Top100_Data"),
+            color=converter.converthex("#60C5F1"),
+            timestamp=datetime.datetime.now(glob.TIMEZONE)
+        )
+        embed.set_footer(text=f"{glob.bot.user}")
+        msg = await ctx.send(embed=embed)
+
+        Top100 = []
+        MelonData = json.loads(str(scrapeMelon.getList("LIVE").decode()))
+        for melon_temp in MelonData:
+            melon_temp = MelonData[f"{melon_temp}"]
+            Top100.append(f"{melon_temp['artists']} {melon_temp['name']}")
+        PlayList = []
+        
+        embed = discord.Embed(
+            title=get_language(ctx.author.id, "Music_Play_Please_Wait"),
+            description=get_language(ctx.author.id, "Music_Play_Append_Melon_Top100_Data"),
+            color=converter.converthex("#60C5F1"),
+            timestamp=datetime.datetime.now(glob.TIMEZONE)
+        )
+        embed.set_footer(text=f"{glob.bot.user}")
+
+        await msg.edit(embed=embed)
+
+        query = f'https://www.youtube.com/watch?v=kTJczUoc26U&list=PL2HEDIx6Li8jGsqCiXUq9fzCqpH99qqHV'
+        tracks = await node.get_tracks(query)
+
+        if isinstance(tracks, TrackPlaylist):
+            for TempTrack in tracks.tracks:
+                sponserList = await self.get_sponser(sbc, TempTrack)
+                asyncio.sleep(0.75)
+
+                track = Track(TempTrack.id, TempTrack.info, requester=ctx.author, sponsorskip=sponserList)
+                await player.queue.put(track)
+                
+                PlayList.append(track)
+
+                if not player.is_playing:
+                    await ctx.send(get_language(ctx.author.id, "Music_Play_While_Append_Melon_Top100_Data_Playing_Top1"))
+                    await player.do_next()
+        else:
+            selectTrack = tracks[0]
+            sponserList = await self.get_sponser(sbc, selectTrack)
+            asyncio.sleep(0.75)
+
+            track = Track(selectTrack.id, selectTrack.info, requester=ctx.author, sponsorskip=sponserList)
+            await player.queue.put(track)
+
+            PlayList.append(track)
+
+        embed = discord.Embed(
+            title=get_language(ctx.author.id, "Music_Play_Add_Playlist"),
+            color=converter.converthex("#60C5F1"),
+            timestamp=datetime.datetime.now(glob.TIMEZONE)
+        )
+        embed.set_footer(text=f"{glob.bot.user}")
+        tempEmbedVal = ""
+        AddCount = 0
+        for temp in PlayList:
+            AddCount += 1
+            if temp == PlayList[len(PlayList)-1]:
+                tempEmbedVal += f"{temp.title} - `{str(datetime.timedelta(milliseconds=int(temp.length)))}`"
+            else:
+                if len(tempEmbedVal) > 700:
+                    tempEmbedVal += get_language(ctx.author.id, "Music_Play_Over_Embed").format(song=len(PlayList) - AddCount)
+                    break
+                tempEmbedVal += f"{temp.title} - `{str(datetime.timedelta(milliseconds=int(temp.length)))}`\n"
+        embed.add_field(name=get_language(ctx.author.id, "Music_Play_selected_embed_SongNameField_Name"), value=tempEmbedVal, inline=False)
+        embed.add_field(name=get_language(ctx.author.id, "Music_Play_selected_embed_RequesterField_Name"), value=ctx.author.mention, inline=True)
+        leftsong = 0
+        if player.is_playing:
+            leftsong = player.queue.qsize()+1-len(PlayList)
+        else:
+            leftsong = player.queue.qsize()-len(PlayList)
+        if not leftsong == 0:
+            embed.add_field(name=get_language(ctx.author.id, "Music_Play_Left_song_count_embed_title"), value=get_language(ctx.author.id, "Music_Play_Left_song_count_embed_value").format(count=leftsong), inline=True)
+
+        await msg.delete()
+        await ctx.send(embed=embed)
+
+        if not player.is_playing:
+            await player.do_next()
+
+
+    @commands.command(name="before", aliases=["이전곡", "이전", "바로전", "전곡", "전", "전전전세"])
+    async def before_song(self, ctx, *, channel: discord.VoiceChannel=None):
+        player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, context=ctx)
+        sbc = sb.Client()
+
+        if not player.is_connected:
+            embed = discord.Embed(
+                title=get_language(ctx.author.id, "Music_General_Not_Connected"),
+                color=converter.converthex(glob.ERROR_COLOR),
+                timestamp=datetime.datetime.now(glob.TIMEZONE)
+            )
+            embed.set_footer(text=f"{glob.bot.user}")
+            return await ctx.send(embed=embed)
+        
+        temp = player.before_track
+                                                        
+        sponserList = await self.get_sponser(sbc, temp)
+        track = Track(temp.id, temp.info, requester=ctx.author, sponsorskip=sponserList)
+        await player.queue.put(track)
+
+        embed = discord.Embed(
+            title=get_language(ctx.author.id, "Music_Play_Add_Playlist"),
+            color=converter.converthex("#60C5F1"),
+            timestamp=datetime.datetime.now(glob.TIMEZONE)
+        )
+        embed.set_footer(text=f"{glob.bot.user}")
+        embed.add_field(name=get_language(ctx.author.id, "Music_Play_selected_embed_SongNameField_Name"), value=f"[{temp.title} - `{str(datetime.timedelta(milliseconds=int(track.length)))}`]({temp.uri})", inline=False)
+        embed.add_field(name=get_language(ctx.author.id, "Music_Play_selected_embed_RequesterField_Name"), value=ctx.author.mention, inline=True)
+        if not player.queue.qsize()-1 == 0:
+            embed.add_field(name=get_language(ctx.author.id, "Music_Play_Left_song_count_embed_title"), value=get_language(ctx.author.id, "Music_Play_Left_song_count_embed_value").format(count=player.queue.qsize()-1), inline=True)
+
+        embed.add_field(name=get_language(ctx.author.id, "Music_Play_Add_Queue_info_embed_title"), value=get_language(ctx.author.id, "Music_Play_Add_Queue_info_embed_value").format(volume=player.volume, equalizer=player.equalizer, repeat='켜짐' if player.repeat else '꺼짐', eq=player.equalizer), inline=False)
+        await ctx.send(embed=embed)
+        
+
+    @commands.command(name="equalizer", aliases=["이퀄라이저", "eq", "dlznjffkdlwj", "이큐"])
+    async def equalizer(self, ctx, *, eq: str="None"):
+        player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, context=ctx)
+        
+        if not player.is_connected:
+            embed = discord.Embed(
+                title=get_language(ctx.author.id, "Music_General_Not_Connected"),
+                color=converter.converthex(glob.ERROR_COLOR),
+                timestamp=datetime.datetime.now(glob.TIMEZONE)
+            )
+            embed.set_footer(text=f"{glob.bot.user}")
+            return await ctx.send(embed=embed)
+
+        eq_list = {'flat': wavelink.Equalizer.flat(),
+                'boost': wavelink.Equalizer.boost(),
+                'metal': wavelink.Equalizer.metal(),
+                'piano': wavelink.Equalizer.piano()}
+
+        EQ = eq_list.get(eq.lower(), None)
+        if EQ == None:
+            embed = discord.Embed(
+                title=get_language(ctx.author.id, "Music_Equalizer_List_embed_title"),
+                description=get_language(ctx.author.id, "Music_Equalizer_List_embed_description").format(prefix=glob.BOT_PREFIX),
+                color=converter.converthex("#60C5F1"),
+                timestamp=datetime.datetime.now(glob.TIMEZONE)
+            )
+            embed.set_footer(text=f"{glob.bot.user}")
+
+            for eq in eq_list.keys():
+                embed.add_field(name=eq, value=get_language(ctx.author.id, f"Music_Equalizer_{eq}_Description"))
+
+            return await ctx.send(embed=embed)
+        
+        await player.set_eq(EQ)
+        embed = discord.Embed(
+            title=get_language(ctx.author.id, "Music_Equalizer_Change_Successful").format(eq=eq),
+            color=converter.converthex("#3EDF6D"),
+            timestamp=datetime.datetime.now(glob.TIMEZONE)
+        )
+        embed.set_footer(text=f"{glob.bot.user}")
+
+        await ctx.send(embed=embed)
+        
 
     @commands.command(name="seek", aliases=["위치", "dnlcl", "넘기기", "넘어가버렷"])
     async def seek(self, ctx, *, position: str, channel: discord.VoiceChannel=None):
@@ -662,6 +814,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
             )
             embed.set_footer(text=f"{glob.bot.user}")
             return await ctx.send(embed=embed)
+
         if not ":" in position or position == "" or position == None:
             embed = discord.Embed(
                 title=get_language(ctx.author.id, "Music_Seek_format_Error_embed_title"),

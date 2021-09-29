@@ -1,10 +1,11 @@
 import discord
+import random
+import datetime
+
+from colored import fore, back, style
 from discord.ext import commands
 from discord import Embed
 from discord.ext.commands import context
-import random
-import datetime
-from colored import fore, back, style
 
 from zeee_bot.common import glob, logging
 

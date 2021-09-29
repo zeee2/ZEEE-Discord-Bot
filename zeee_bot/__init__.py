@@ -1,17 +1,9 @@
-import os
-import requests
-import json
 import pathlib
-import discord
-from discord.ext import commands
-from dislash import InteractionClient
-from colored import fore, back, style
 import sys
-from urllib import request
-from pytz import timezone
-import time
-import multiprocessing
 import logging as syslog
+
+from colored import fore, back, style
+from pytz import timezone
 
 from zeee_bot.common import mysql, glob, logging
 from zeee_bot.modules import config
