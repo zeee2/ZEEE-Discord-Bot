@@ -502,8 +502,8 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         player: Player = self.bot.wavelink.get_player(guild_id=ctx.guild.id, cls=Player, context=ctx)
         sbc = sb.Client()
         if not player.is_connected:
-            await player.set_default_volume()
             await ctx.invoke(self.connect)
+            await player.set_default_volume()
 
         query = query.strip('<>')
         if not url_re.match(query):
@@ -634,8 +634,8 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         sbc = sb.Client()
 
         if not player.is_connected:
-            await player.set_default_volume()
             await ctx.invoke(self.connect)
+            await player.set_default_volume()
 
         embed = discord.Embed(
             title=get_language(ctx.author.id, "Music_Play_Please_Wait"),
